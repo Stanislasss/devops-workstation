@@ -30,6 +30,11 @@
         - username: twolf
 
   vars:
+    terraform_version: "0.11.13"
+    terraform_install_dir: "/usr/local/share/terraform/{{ terraform_version }}"
+    terraform_download_url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
+    terraform_dep_packages:
+    - unzip
     docker__edition: "ce"
     docker__channel: ["stable"]
     docker__version: ""
@@ -161,8 +166,46 @@
         - mysql-common
         - postgresql
         - bmon
+        - unzip
 
+# Install Terraform
+
+    - name: Ensure required packages are available.
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - "{{ terraform_dep_packages }}"
+    
+    
+    - name: Ensure install directory is available.
+      file:
+        path: "{{ terraform_install_dir }}"
+        mode: 0755
+        state: directory
+    
+    - name: "Download terraform {{ terraform_version }} binary."
+      get_url: 
+          url: "{{ terraform_download_url }}" 
+          dest: "/tmp/terraform_{{ terraform_version }}_darwin_amd64.zip"
+    
+    - name: "Unarchive terraform {{ terraform_version }} zip."
+      unarchive:
+        copy: no
+        src:  "/tmp/terraform_{{ terraform_version }}_darwin_amd64.zip"
+        dest: "{{ terraform_install_dir }}"
+        creates: "{{ terraform_install_dir }}/terraform"
+        mode: 0755
+    
+    - name: Set symlink to /usr/local/bin/terraform.
+      file:
+        state: link
+        src: "/usr/local/share/terraform/{{ terraform_version }}/terraform"
+        dest: "/usr/local/bin/terraform"   
         
+    - name: Add terraform autocompletion
+      command: terraform -install-autocomplete 
+
     #
     # Get the lates version of go
     #
@@ -246,6 +289,8 @@
       copy:
         content: "{{ autocompletion.stdout }}"
         dest: /etc/bash_completion.d/kubectl
+
+
 
     #
     # Get latest helm
