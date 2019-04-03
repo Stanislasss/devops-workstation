@@ -25,6 +25,9 @@
   roles:
     - role: "nickjj.docker"
       tags: ["docker"]  
+    - role: gantsign.oh-my-zsh
+      users:
+        - username: twolf
 
   vars:
     docker__edition: "ce"
@@ -134,7 +137,7 @@
       apt:
         name: code
         state: present
-
+     
     - name: install packages
       apt:
         name: "{{ packages }}"
