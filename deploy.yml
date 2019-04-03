@@ -22,13 +22,20 @@
 
 - hosts: localhost
   become: true
+  roles:
+    - role: "nickjj.docker"
+      tags: ["docker"]  
 
   vars:
+    docker__edition: "ce"
+    docker__channel: ["stable"]
+    docker__version: ""
     aws_region: us-east-1   # Cheapest region by default.
     # Set the version of Node.js to install ("0.12", "4.x", "5.x", "6.x", "8.x").
     # Version numbers from Nodesource: https://github.com/nodesource/distributions
     nodejs_version: "8.x"
     go_version: 1.11
+    slack_version: 3.1.1
     npm_config_prefix: "/usr"
 
     devops_user: "{{ lookup('env', 'USER') }}"
@@ -66,6 +73,14 @@
       - jslint
       - serverless
 
+    vagrant_version: "1.9.1"
+    vagrant_tmp_dir: "/tmp/"
+    vagrant_tmp_deb: "{{vagrant_tmp_dir}}/vagrant_{{vagrant_version}}.deb"
+    vagrant_tmp_rpm: "{{vagrant_tmp_dir}}/vagrant_{{vagrant_version}}.rpm"
+    vagrant_virtualbox_install: True
+    vagrant_virtualbox_ver: "virtualbox"
+    vagrant_url_deb: "https://releases.hashicorp.com/vagrant/{{vagrant_version}}/vagrant_{{vagrant_version}}_{{ansible_architecture}}.deb"
+
     vagrant_plugins:
       - vagrant-aws
       - vagrant-google
@@ -81,21 +96,13 @@
       - goland
       - phpstorm
       - pycharm-professional
-      - slack
-      # skype
+      - docker
 
     snap_packages:
       - spotify
       - vlc
-      # lxd
 
   tasks:
-    #- import_tasks: deploy-debian.yml
-    #  become: true
-    #  when: ansible_os_family == 'Debian'
-    #  tags:
-    #    - package
-
     - name: install dependencies
       apt:
         name: "{{ packages  }}"
@@ -142,13 +149,17 @@
         - openjdk-8-jre
         - remmina
         - terminator
-        - openvpn network-manager-gnome-openvpn
+        - openvpn
+        - network-manager-openvpn-gnome
         - clamav
         - openvpn
         - iproute2
         - ldap-utils
         - mysql-common
-        - postgre
+        - postgresql
+        - bmon
+
+        
     #
     # Get the lates version of go
     #
@@ -162,46 +173,6 @@
         src: /usr/local/src/go_{{ go_version }}.tgz
         dest: /usr/local
 
-    #
-    # Get latest assume
-    #
-    - name: "assume gives errors if credentials file does not exist"
-      file:
-        path: "~/.aws"
-        state: directory
-      become: false
-
-    - name: "assume gives errors if credentials file does not exist"
-      copy:
-        content: ""
-        dest: "~/.aws/credentials"
-        force: false
-      become: false
-
-    - name: "get latest AWS assume role"
-      uri:
-        url: "https://github.com/s3than/assume/releases/latest"
-        return_contents: false
-      register: output_result
-
-
-    - name: "get latest version"
-      set_fact:
-        assume_latest: "{{ output_result.url | basename }}"
-
-    - debug:
-        var: assume_latest
-
-    - name: "Download assume"
-      get_url:
-        url: "https://github.com/s3than/assume/releases/download/{{ assume_latest }}/assume-linux-amd64"
-        dest: "/usr/local/src/assume_{{ assume_latest }}"
-
-    - name: "copy newest version of assume to bin directory"
-      copy:
-        src: "/usr/local/src/assume_{{ assume_latest }}"
-        dest: "/usr/local/bin/assume"
-        mode: 0755
 
     #
     # Get latest minikube
@@ -434,24 +405,6 @@
         content: "{{ autocompletion.stdout }}"
         dest: /etc/bash_completion.d/kops
 
-    # name: ensue we have latest npm version
-    # https://docs.npmjs.com/getting-started/installing-node
-    # npm install npm@latest -g
-    - name: install extra system npm modules
-      npm:
-        name: '{{ item }}'
-        state: present
-        global: true
-      with_items:
-        "{{ npm_modules }}"
-      environment:
-        NPM_CONFIG_PREFIX: "{{ npm_config_prefix }}"
-        NODE_PATH: "{{ npm_config_prefix }}/lib/node_modules"
-        NPM_CONFIG_UNSAFE_PERM: "{{ npm_config_unsafe_perm }}"
-        PATH: "{{ npm_config_prefix }}/bin:{{ ansible_env.PATH }}"
-      become: true
-      tags:
-        - install-npm-packages
 
     - name: install extra system pip modules
       pip:
@@ -464,6 +417,15 @@
       become: true
       tags:
         - install-pip-modules
+
+    - name: Install virtualbox for Debian OS family
+      apt: name={{ vagrant_virtualbox_ver }}
+
+    - name: Download vagrant
+      get_url: url={{ vagrant_url_deb }} dest={{vagrant_tmp_deb}}
+
+    - name: Install vagrant for Debian OS family
+      apt: deb={{vagrant_tmp_deb}}
 
     - name: "Upgrade existing installed vagrant plugins"
       command: "vagrant plugin update"
@@ -480,42 +442,37 @@
       tags:
         - install-vagrant-plugins
 
-    - name: "install vagrant plugins"
-      command: "vagrant plugin install {{ item }}"
-      register: install_vagrant_plugin
-      with_items:
-        "{{ vagrant_plugins }}"
-      when: item not in vagrant_initial_plugins_list.stdout
-      tags:
-        - install-vagrant-plugins
+    # - name: "install vagrant plugins"
+    #   command: "vagrant plugin install {{ item }}"
+    #   register: install_vagrant_plugin
+    #   with_items:
+    #     "{{ vagrant_plugins }}"
+    #   when: item not in vagrant_initial_plugins_list.stdout
+    #   tags:
+    #     - install-vagrant-plugins
 
-    - name: "Clone netdata repo"
-      git:
-        clone: true
-        update: true
-        repo: https://github.com/firehol/netdata.git
-        dest: /usr/src/netdata
-        version: master
-      register: gitupdate
+    - name: apt-get update
+      apt: update_cache=true cache_valid_time=3600
+      sudo: yes
 
-    - name: "Installation"
-      command: >
-        /usr/src/netdata/netdata-installer.sh
-           --dont-wait --libs-are-really-here
+    - name: install gdebi
+      apt: name=gdebi
+      sudo: yes
+
+    - name: Check if slack is installed
+      command: dpkg-query -W slack-desktop
+      register: check_slack
+      failed_when: false
+      changed_when: false
+
+    - name: Download Ubuntu slack package
+      command: "wget -O /tmp/slack-desktop.deb https://downloads.slack-edge.com/linux_releases/slack-desktop-{{ slack_version }}-amd64.deb"
       args:
-        chdir: /usr/src/netdata
-      when: gitupdate is changed
-      tags:
-        - skip_ansible_lint
+        creates: "/tmp/slack-desktop.deb"
+      when: check_slack.rc == 1
 
-    - name: "Add user to groups"
-      user:
-        name: "{{ devops_user }}"
-        groups: "{{ item }}"
-        append: true
-      with_items:
-        - docker
-        # uncomment if you are using kvm virtualisation
-        # libvirt
-        # lxd
+    - name: Install Ubuntu slack package
+      sudo: true
+      command: gdebi --non-interactive /tmp/slack-desktop.deb
+      when: check_slack.rc == 1
 
