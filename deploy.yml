@@ -28,8 +28,12 @@
     - role: gantsign.oh-my-zsh
       users:
         - username: twolf
+    - role: fubarhouse.golang
 
   vars:
+    go_version: 1.11
+    GOPATH: /home "{{ lookup('env', 'USER') }}"/go
+    GOROOT: /usr/local/go
     terraform_version: "0.11.13"
     terraform_install_dir: "/usr/local/share/terraform/{{ terraform_version }}"
     terraform_download_url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
@@ -42,7 +46,6 @@
     # Set the version of Node.js to install ("0.12", "4.x", "5.x", "6.x", "8.x").
     # Version numbers from Nodesource: https://github.com/nodesource/distributions
     nodejs_version: "8.x"
-    go_version: 1.11
     slack_version: 3.1.1
     npm_config_prefix: "/usr"
 
@@ -205,21 +208,8 @@
         
     - name: Add terraform autocompletion
       command: terraform -install-autocomplete 
-
-    #
-    # Get the lates version of go
-    #
-    - name: "Download go"
-      get_url:
-        url: "https://dl.google.com/go/go{{ go_version}}.linux-amd64.tar.gz"
-        dest: "/usr/local/src/go_{{ go_version }}.tgz"
-
-    - name: "Extract and install go"
-      unarchive:
-        src: /usr/local/src/go_{{ go_version }}.tgz
-        dest: /usr/local
-
-
+      ignore_errors: true
+  
     #
     # Get latest minikube
     #
