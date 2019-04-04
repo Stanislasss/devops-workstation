@@ -170,6 +170,7 @@
         - postgresql
         - bmon
         - unzip
+        - fonts-powerline
 
 # Install Terraform
 
