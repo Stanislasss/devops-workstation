@@ -87,3 +87,7 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
  alias ll="ls -al"
+ alias kubectl-1.8="kubectl-1.8"
+ complete -o default -F __start_kubectl kubectl-1.8
+ alias k="kubectl"
+ complete -o default -F __start_kubectl k
