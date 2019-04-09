@@ -8,3 +8,4 @@ oh_my_zsh_plugins:
   - aws
   - history
   - kubectl
+  - terraform
