@@ -171,6 +171,8 @@
         - bmon
         - unzip
         - fonts-powerline
+        - fonts-inconsolata
+        - shellcheck
 
 # Install Terraform
 
