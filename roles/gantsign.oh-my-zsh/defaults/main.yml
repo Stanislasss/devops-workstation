@@ -9,3 +9,4 @@ oh_my_zsh_plugins:
   - history
   - kubectl
   - terraform
+  - kops
