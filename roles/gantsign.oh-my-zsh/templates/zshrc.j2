@@ -91,3 +91,11 @@ source $ZSH/oh-my-zsh.sh
  complete -o default -F __start_kubectl kubectl-1.8
  alias k="kubectl"
  complete -o default -F __start_kubectl k
+ 
+ export PATH=${PATH}:/opt/p4v-2019.1.1797168/bin
+export PATH="$HOME/.tfenv/bin:$PATH"
+export POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs kubecontext)
+export POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status root_indicator background_jobs history time public_ip)
+export POWERLEVEL9K_SHORTEN_DIR_LENGTH=1
+export POWERLEVEL9K_SHORTEN_DELIMITER=""
+export POWERLEVEL9K_SHORTEN_STRATEGY="truncate_from_right"
