@@ -43,8 +43,7 @@ How to boot strap for the first time
 
 ```bash
 apt install ansible git
-echo 'localhost ansible_host=127.0.0.1 ansible_connection=local' >> /etc/ansible/hosts
-pip install -r requirements.txt
+echo 'localhost ansible_host=127.0.0.1 ansible_connection=local' | sudo tee /etc/ansible/hosts
 
 ansible-playbook -l localhost deploy.yml --ask-become
 ```
