@@ -45,8 +45,8 @@
     aws_region: us-east-1   # Cheapest region by default.
     # Set the version of Node.js to install ("0.12", "4.x", "5.x", "6.x", "8.x").
     # Version numbers from Nodesource: https://github.com/nodesource/distributions
-    nodejs_version: "8.x"
-    slack_version: 3.1.1
+    nodejs_version: "10.x"
+    slack_version: 4.0.1
     npm_config_prefix: "/usr"
 
     devops_user: "{{ lookup('env', 'USER') }}"
@@ -84,7 +84,7 @@
       - jslint
       - serverless
 
-    vagrant_version: "1.9.1"
+    vagrant_version: "2.2.5"
     vagrant_tmp_dir: "/tmp/"
     vagrant_tmp_deb: "{{vagrant_tmp_dir}}/vagrant_{{vagrant_version}}.deb"
     vagrant_tmp_rpm: "{{vagrant_tmp_dir}}/vagrant_{{vagrant_version}}.rpm"
